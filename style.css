@@ -1,0 +1,39 @@
+body {
+  font-family: snas-serif;
+}
+
+.fill_paremt {
+  position:absolute;
+  left:0px;
+  right:0px;
+  top:0px;
+  bottom:0px;
+}
+
+.dock_bottom {
+  position:absolute;
+  left:0px;
+  right:0px;
+  bottom:0px;
+}
+
+.dock_top {
+  position:absolute;
+  left:0px;
+  right:0px;
+  top:0px;
+}
+
+.dock_left {
+  position:absolute;
+  left:0px;
+  top:0px;
+  bottom:0px;
+}
+
+.dock_right {
+  position:absolute;
+  top:0px;
+  bottom:0px;
+  right:0px;
+}
