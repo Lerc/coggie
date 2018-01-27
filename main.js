@@ -167,8 +167,16 @@ function handleMouseMove(e) {
   }
 }
 
+var lastTime  = performance.now();
+var frameDurationInMilliseconds = 1000/60;
 function update() {
-  move();
+  let currentTime=performance.now();
+  let deltaTime = currentTime-lastTime;
+  let ticks = Math.round(deltaTime / frameDurationInMilliseconds);
+  lastTime=currentTime;
+  note = JSON.stringify({ticks,deltaTime});
+
+  ticks.times(move);
   draw();
   requestAnimationFrame(update);
 }
