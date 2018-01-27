@@ -16,7 +16,7 @@ function init() {
   $(".content").append($(canvas));
   
   canvas.width=1400;
-  canvas.height=900;
+  canvas.height=1000;
   waitForImages();
 }
 
@@ -34,6 +34,11 @@ function waitForImages() {
   
 }
 
+var titleScreen = {
+  pegs : [[1000,35,0]],
+  cogs :[[0,60]]
+}
+
 var puzzle1 = {
   pegs : [[-550,-270], [-550,0], [-550, 270],[550,-270],[550,270],[-41,278] ,[-70,90] , [-90,-77], [10,-180], [135,-293] ],
   cogs :[[0,8],[1,12],[2,16],[3,20],[4,20]]
@@ -43,6 +48,17 @@ var puzzle2 = {
   pegs : [[-550,-270], [-550,0], [-550, 270],[550,-270],[550,0],[550,270],  [-265,353] ,[-107,285] , [-363,210], [-291,0], [-107,64], [-186,-191], [135,-293], [3,-304], [-322,-139],[80,122],[273,27],[137,-112] ],
   cogs :[[0,8],[1,12],[2,16],[3,20],[4,16],[5,20],[10,20]]
 }
+
+
+var mouseDownPosition;
+var mouse;
+var cogUnderMouse;
+
+var pegUnderMouse;
+
+var dragging=null;
+var dragOffset;
+var age = 0;
 
 
 function gameInit() {
@@ -55,15 +71,33 @@ function gameInit() {
   cogImage[16]=Assets.cog16;
   cogImage[20]=Assets.cog20;
   cogImage[100]=Assets.cog100;
+  cogImage[60]=Assets.intro_screen;
   
-  setPuzzle(puzzle2);
+  setPuzzle(titleScreen);
+  let magicPeg = level.pegs[2];
+  let orgMove = magicPeg.move;
+  magicPeg.move = function() {
+      orgMove();
+      let {x,y} = magicPeg.getPosition();
+      if (x > 0)  x*=0.95;
+      magicPeg.setPosition({x,y});
+      
+      if (dragging) setPuzzle(puzzle1);
+
+  }
+  magicPeg.draw = function() {
+    let {x,y} = magicPeg.getPosition();    
+    //ctx.drawImage(Assets.happy_piston_2,x-50,y-53);
+  } 
   update();
 }
 
 
 function setPuzzle(puzzle) {
+  dragging=null;
+  cogUnderMouse=null;
   let  fixedpegs=  [ 
-    [0,-1000],[0,1000]
+    [0,-1000,0],[0,1000,0]
   ]  
   level.pegs = [...fixedpegs,...puzzle.pegs].map(a=>makePeg(...a));
   
@@ -83,16 +117,6 @@ function setPuzzle(puzzle) {
   }
 }
 
-var mouseDownPosition;
-var mouse;
-var cogUnderMouse;
-
-var pegUnderMouse;
-
-var dragging=null;
-var dragOffset;
-var age = 0;
-
 
 var lastTime  = performance.now();
 var frameDurationInMilliseconds = 1000/60;
@@ -100,6 +124,7 @@ function update() {
   let currentTime=performance.now();
   let deltaTime = currentTime-lastTime;
   let ticks = Math.round(deltaTime / frameDurationInMilliseconds);
+  if (ticks > 10) ticks=1;
   lastTime=currentTime;
   note = JSON.stringify({ticks,deltaTime});
   
@@ -107,6 +132,7 @@ function update() {
   draw();
   requestAnimationFrame(update);
 }
+
 function move() {
   age+=1;
  scanCogs();
@@ -134,6 +160,8 @@ function draw() {
 function handleMouseDown(e) {
   let x=e.offsetX;
   let y=e.offsetY;
+  playSound(Assets.bleep);
+
   mouseDownPosition= mouseToWorld({x,y});
   if (cogUnderMouse) {
     let cogPos = cogUnderMouse.getPosition();
@@ -295,15 +323,28 @@ function drawSprite(image,x,y,frame=0) {
 
 }
 
-function makePeg(x,y) {
-  function move(){}
-  function draw() {
+function makePeg(placedX,placedY,zoomFrom=1) {
+  
+  function move(){
+    zoomFrom*=0.90;
+  }
+  function draw() 
+  {
+    let {x,y} = getPosition();
     drawSprite(Assets.peg,x,y);
   }
   function getPosition() {
-    return {x,y}
+    let x= placedX*(1+1*zoomFrom)
+    let y= placedY*(1+1*zoomFrom)
+    
+    return {x,y};
   }
-  return {move,draw,getPosition}
+  function setPosition(pos) {
+    zoomFrom=0;
+    placedX=pos.x;
+    placedY=pos.y;
+  }
+  return {move,draw,getPosition,setPosition}
 }
 
 
@@ -311,6 +352,7 @@ function makePeg(x,y) {
 function makeCog(peg,teeth) {
   let mouthFrame=0; 
   let angle=Math.random();
+  if (teeth==60) angle=0.6;
   let radius = (teeth*37.7)/(Math.PI*2);
   let eyeSize = radius/10;
   let rotation =(1/radius);
@@ -321,6 +363,10 @@ function makeCog(peg,teeth) {
   let ratio = (radius+20)/radius;
   //let teeth = Math.floor((radius*Math.PI*2)/38);
   var image; 
+  let parts = cogParts[teeth];
+  let leftEye; 
+  let rightEye;
+  
   if (cogImage[teeth]) {
     image = cogImage[teeth];//scaledImage(cogImage[teeth],radius*2.5,radius*2.5);
   } else image = scaledImage(Assets.gear2,radius*2,radius*2);
@@ -360,13 +406,16 @@ function makeCog(peg,teeth) {
     setPhase(0.5-other.getPhase(dir),dir+Math.PI);
     
   }
-  function makeEyeBall(white,iris,x,y) {
-    let base = workingImage(white);
+  function makeEyeBall(white,iris,x,y,base = workingImage(white)) {
     let c=base.getContext("2d")
+    c.save();
+    c.clearRect(0,0,base.width,base.height);
+    c.drawImage(white,0,0); 
     c.globalCompositeOperation="source-atop";
     c.translate((base.width)/2+x+iris.x,(base.height)/2 +y+iris.y)
     c.rotate(-angle);
     c.drawImage(iris.image,-(iris.image.width)/2, -(iris.image.height)/2); 
+    c.restore();
     return base;
   }
   function drawAt(x,y) {
@@ -376,13 +425,10 @@ function makeCog(peg,teeth) {
 
     drawSprite(image,0,0);
 
-
-      let parts = cogParts[teeth];
-
-    if (parts ) {
-      let leftEye = makeEyeBall(parts.leftWhite.image, parts.leftIris,Math.sin(angle*8)*eyeSize/3,3+Math.cos(angle*8)*eyeSize/3);
+    if (parts) {
+      leftEye = makeEyeBall(parts.leftWhite.image, parts.leftIris,Math.sin(angle*8)*eyeSize/3,3+Math.cos(angle*8)*eyeSize/3,leftEye);
       drawSprite(leftEye,parts.leftWhite.x,parts.leftWhite.y)
-      let rightEye = makeEyeBall(parts.leftWhite.image, parts.rightIris,Math.sin(angle*-9)*eyeSize/3,3+Math.cos(angle*-9)*eyeSize/3);
+      rightEye = makeEyeBall(parts.leftWhite.image, parts.rightIris,Math.sin(angle*-9)*eyeSize/3,3+Math.cos(angle*-9)*eyeSize/3,rightEye);
       drawSprite(rightEye,parts.rightWhite.x,parts.rightWhite.y)
 
       drawSprite(parts.mouth.image,parts.mouth.x,parts.mouth.y,mouthFrame);

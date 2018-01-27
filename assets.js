@@ -38,14 +38,18 @@ imageList = [
     "angry_piston_3.png",
     "happy_piston_1.png",
     "happy_piston_2.png",
-    
+
+    "intro_screen.png",
     "peg.png",
     "blarg.png|10|1"
 ].map(imageDetailsFromString);
 
+var soundList = ["bleep.wav"];
 
 var imagesPending = [];
 var Assets = {};
+
+var audioContext = new AudioContext();
 
 function loadImage (url) {
     imagesPending.push(url);
@@ -65,6 +69,31 @@ function imageDetailsFromString(s) {
     return {name,framesWide,framesHigh}
 }
 
+function playSound(buffer) {
+  var source = audioContext.createBufferSource();
+  source.buffer = buffer;                   
+  source.connect(audioContext.destination);      
+  source.start(0);                               
+}
+
+function loadSound(url) {
+    var onError = a=>(console.log(a));
+    console.log(url);
+  var request = new XMLHttpRequest();
+  request.open('GET', url, true);
+  request.responseType = 'arraybuffer';
+  let name = url.slice(url.lastIndexOf("/")+1).replace(/\.[^/.]+$/, "");
+  Assets[name]=audioContext.createBuffer(1,1,44100);//temporary null buffer until loaded
+  // Decode asynchronously
+  request.onload = function() {
+      console.log(name+" loaded");
+    audioContext.decodeAudioData(request.response, function(buffer) {
+      Assets[name]=buffer;
+    }, onError);
+  }
+  request.send();
+}
+
 var cogParts =[];
 function loadAssets() {
     
@@ -75,6 +104,9 @@ function loadAssets() {
         image.framesHigh=i.framesHigh;
     }
 
+    for (let s of soundList) {
+        loadSound("sounds/"+s);
+    }
     function pos(name,x,y) {
         let image = Assets[name];
         return {image,x,y}
