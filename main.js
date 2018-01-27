@@ -34,13 +34,16 @@ function waitForImages() {
   
 }
 
+var puzzle1 = {
+  pegs : [[-550,-270], [-550,0], [-550, 270],[550,-270],[550,270],[-41,278] ,[-70,90] , [-90,-77], [10,-180], [135,-293] ],
+  cogs :[[0,8],[1,12],[2,16],[3,20],[4,20]]
+}
 
 
 function gameInit() {
   $(canvas).on("mousemove", handleMouseMove)
            .on("mouseup", handleMouseUp)
-           .on("mousedown", handleMouseDown)
-
+           .on("mousedown", handleMouseDown);
 
   cogImage[8]=Assets.cog8;
   cogImage[12]=Assets.cog12;
@@ -48,44 +51,31 @@ function gameInit() {
   cogImage[20]=Assets.cog20;
   cogImage[100]=Assets.cog100;
   
+  setPuzzle(puzzle1);
+  update();
+}
+
+
+function setPuzzle(puzzle) {
   let  fixedpegs=  [ 
-    [0,-1000],[0,1000],[-550,-270], [-550,0], [-550, 270],[550,-270],[550,270]
-  ]
-
-  let puzzlePegs = [[-41,278] ,[-70,90] , [-90,-77], [10,-180], [135,-293] ];
-
-  for (let [x,y] of [...fixedpegs,...puzzlePegs] ) {
-    level.pegs.push(makePeg(x,y));
-  }
+    [0,-1000],[0,1000]
+  ]  
+  level.pegs = [...fixedpegs,...puzzle.pegs].map(a=>makePeg(...a));
+  
   let pegs=level.pegs;
 
   let bottom = makeCog(pegs[1],100);
   let top = makeCog(pegs[0],100);
-
   top.fixed=true;
   bottom.direction=1;
   bottom.fixed=true;
   level.bottom=bottom;
   level.top=top;
-  level.cogs.push(bottom);
-  level.cogs.push(top);
+  level.cogs = [bottom,top]; 
 
-  level.cogs.push(makeCog(pegs[2],8));
-  level.cogs.push(makeCog(pegs[3],12));
-  level.cogs.push(makeCog(pegs[4],16));
-  level.cogs.push(makeCog(pegs[5],20));
-  level.cogs.push(makeCog(pegs[6],20));
-/*
-  for (let ty=0; ty<6; ty++) {
-    for (let tx=0; tx<8; tx++) {
-      if ( (tx+ty)&1 == 1 ) {
-        let peg = makePeg(tx*135-500,ty*135-400);
-        level.pegs.push(peg);
-      }
-    }
+  for (let [peg,teeth] of puzzle.cogs) {
+    level.cogs.push(makeCog(pegs[peg+2],teeth));
   }
-  */
-  update();
 }
 
 var mouseDownPosition;
@@ -109,7 +99,6 @@ function handleMouseDown(e) {
 
     dragOffset={dx,dy};
     dragging=cogUnderMouse;
-
   }
 }
 
@@ -186,21 +175,23 @@ function move() {
 
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawBackdrop();
-
   if (imagesPending.length > 0) {
     ctx.fillText(JSON.stringify(imagesPending),10,10);
-
-    return
+    return;
   }
+
+  drawBackdrop(); 
+  gameDraw();
+
   ctx.fillText(note,10,10);
-  
-  ctx.save();
-  
+
+}
+
+function gameDraw() {
+  ctx.save(); 
   ctx.translate(canvas.width/2,canvas.height/2);
 
   ctx.save();
-  
   ctx.translate(0,1000);
   let qx = 434;
   let qy = 606;
@@ -218,16 +209,22 @@ function draw() {
   for (let e of [...level.pegs,...level.cogs]) {
     e.draw();
   }
+  if (dragging) {
+      //dragging.highlight();    
+  } else {
+    if (cogUnderMouse) {
+      cogUnderMouse.highlight();
+    }
+  }
   ctx.restore();  
 }
-
 function cogTouching(a,b) {
   let apos=a.getPosition();
   let bpos=b.getPosition();
   let d=distance(apos,bpos);
   let want= a.radius+b.radius;
   let e = d-want;
-  return (Math.sqrt(e*e)  < 15 );
+  return (Math.sqrt(e*e)  < 10 );
 }
 
 function scanCogs() {
@@ -283,14 +280,6 @@ function makePeg(x,y) {
   function move(){}
   function draw() {
     drawSprite(Assets.peg,x,y);
-/*
-    ctx.fillStyle="#00f"
-    ctx.beginPath();
-    ctx.ellipse(x,y,5,5,0,0,Math.PI*2);
-    ctx.fill();
-    ctx.polygon(x,y,10,20,0);
-    ctx.stroke();
-*/    
   }
   function getPosition() {
     return {x,y}
@@ -308,7 +297,7 @@ function makeCog(peg,teeth) {
   let rotation =(1/radius);
   let toothAngle = Math.PI*2/teeth;
   //if (Math.random()<0.5) rotation=-rotation; 
-  let self = {move,draw,getPosition,radius,toothAngle,teeth,setPeg,getPeg,getAngle,getPhase,linkTo};
+  let self = {move,draw,getPosition,radius,toothAngle,teeth,setPeg,getPeg,getAngle,getPhase,linkTo,highlight};
   self.direction=0;
   let ratio = (radius+20)/radius;
   //let teeth = Math.floor((radius*Math.PI*2)/38);
@@ -339,6 +328,7 @@ function makeCog(peg,teeth) {
     let current = getPhase(direction);
     let delta = desiredPhase-current;
     if (delta > 0.5) delta = -1+delta;
+    if (delta < -0.5) delta = 1+delta;
     angle+= delta*toothAngle;
     //angle=desiredPhase*toothAngle;
   }
@@ -361,20 +351,9 @@ function makeCog(peg,teeth) {
     return base;
   }
   function drawAt(x,y) {
-
     ctx.save();
     ctx.translate(x,y);
     ctx.rotate(angle); 
-    
-    ctx.fillStyle="rgba(0,255,255,0.2)";
-    ctx.beginPath();
-    ctx.star(0,0,radius,ratio,teeth,0);
-    //ctx.fill();  
-    if (cogUnderMouse==self) {
-      ctx.lineWidth=3;
-      ctx.strokeStyle="orange";
-      ctx.stroke();  
-    }
 
     drawSprite(image,0,0);
 
@@ -390,32 +369,6 @@ function makeCog(peg,teeth) {
       drawSprite(parts.mouth.image,parts.mouth.x,parts.mouth.y,mouthFrame);
     }
 
-/*
-    //drawSprite(Assets.png8,0,0);
-    drawSprite(Assets.blarg,0,radius/2,mouthFrame);
-    //ctx.drawImage(image,-image.width/2,-image.height/2);
-
-    let leftEye = makeEyeBall(Math.sin(angle*4)*eyeSize/3,3+Math.cos(angle*4)*eyeSize/3);
-    drawSprite(leftEye,-radius/2,-radius/3)
-    let rightEye = makeEyeBall(Math.sin(angle*4)*eyeSize/3,3+Math.cos(angle*4)*eyeSize/3);
-    drawSprite(leftEye,radius/2,-radius/2)
-*/    
-/*
-    ctx.fillStyle="rgba(250,250,192,1)";
-    ctx.polygon(-radius/2,-radius/3,eyeSize,20);
-    ctx.fill();
-    ctx.polygon(+radius/2,-radius/2,eyeSize,20);
-    ctx.fill();
-
-    ctx.fillStyle="rgba(0,0,0,1)";
-    {
-      
-      ctx.polygon((-radius/2)+Math.sin(angle*2)*eyeSize/3,-radius/3+Math.cos(angle*2)*eyeSize/2,eyeSize/2,20);
-      ctx.fill();
-      ctx.polygon((radius/2)+Math.sin(angle*2)*eyeSize/3,-radius/2+Math.cos(angle*2)*eyeSize/2,eyeSize/2,20);
-      ctx.fill();
-    }
-*/
     ctx.restore();
 
   }
@@ -436,6 +389,24 @@ function makeCog(peg,teeth) {
   function draw() {
       let {x,y} = getPosition();
       drawAt(x,y);    
+  }
+  function highlight() {
+    let {x,y} = getPosition();
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(angle); 
+    
+    ctx.lineWidth=3;
+    ctx.star(0,0,radius,ratio,teeth,0);
+    ctx.strokeStyle="rgb(255,255,90)";
+    ctx.stroke();  
+    ctx.star(0,0,radius+3,ratio,teeth,0);
+    ctx.strokeStyle="rgba(255,200,30,0.5)";
+    ctx.stroke();  
+    ctx.star(0,0,radius-3,ratio,teeth,0);
+    ctx.stroke();  
+
+    ctx.restore();
   }
   return self;
   
