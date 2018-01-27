@@ -37,3 +37,10 @@ body {
   bottom:0px;
   right:0px;
 }
+
+canvas {
+  background-color: #2169ba;
+}
+.content {
+  text-align:center;
+}

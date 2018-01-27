@@ -15,7 +15,7 @@ var cogImage = [];
 function init() {
   $(".content").append($(canvas));
   
-  canvas.width=1800;
+  canvas.width=1400;
   canvas.height=900;
   waitForImages();
 }
@@ -49,7 +49,7 @@ function gameInit() {
   cogImage[100]=Assets.cog100;
   
   let  fixedpegs=  [ 
-    [0,-1000],[0,1000],[-750,-270], [-750,0], [-750, 270],[750,-270],[750,270]
+    [0,-1000],[0,1000],[-550,-270], [-550,0], [-550, 270],[550,-270],[550,270]
   ]
 
   let puzzlePegs = [[-41,278] ,[-70,90] , [-90,-77], [10,-180], [135,-293] ];
@@ -186,6 +186,7 @@ function move() {
 
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawBackdrop();
 
   if (imagesPending.length > 0) {
     ctx.fillText(JSON.stringify(imagesPending),10,10);
@@ -193,6 +194,7 @@ function draw() {
     return
   }
   ctx.fillText(note,10,10);
+  
   ctx.save();
   
   ctx.translate(canvas.width/2,canvas.height/2);
@@ -242,7 +244,7 @@ function scanCogs() {
         for (let b of level.cogs) {
           if (b.direction==0) {
             if (cogTouching(a,b)) {
-              b.direction=-a.direction;
+              b.linkTo(a);
               return true;
             } 
           }
@@ -304,9 +306,9 @@ function makeCog(peg,teeth) {
   let radius = (teeth*37.7)/(Math.PI*2);
   let eyeSize = radius/10;
   let rotation =(1/radius);
-
+  let toothAngle = Math.PI*2/teeth;
   //if (Math.random()<0.5) rotation=-rotation; 
-  let self = {move,draw,getPosition,radius,setPeg,getPeg,getAngle};
+  let self = {move,draw,getPosition,radius,toothAngle,teeth,setPeg,getPeg,getAngle,getPhase,linkTo};
   self.direction=0;
   let ratio = (radius+20)/radius;
   //let teeth = Math.floor((radius*Math.PI*2)/38);
@@ -328,6 +330,26 @@ function makeCog(peg,teeth) {
     } else {
       return peg.getPosition();
     }
+  }
+  function getPhase(direction = 0) {
+    return ((angle+direction)%toothAngle)/toothAngle; 
+  }
+  
+  function setPhase(desiredPhase, direction = 0) {
+    let current = getPhase(direction);
+    let delta = desiredPhase-current;
+    if (delta > 0.5) delta = -1+delta;
+    angle+= delta*toothAngle;
+    //angle=desiredPhase*toothAngle;
+  }
+  function linkTo(other) {
+    self.direction=-other.direction;
+    let a=getPosition();
+    let b=other.getPosition();
+    var dir=Math.atan2(a.y-b.y,-(a.x-b.x));
+    note=dir;
+    setPhase(0.5-other.getPhase(dir),dir+Math.PI);
+    
   }
   function makeEyeBall(white,iris,x,y) {
     let base = workingImage(white);
@@ -365,7 +387,7 @@ function makeCog(peg,teeth) {
       let rightEye = makeEyeBall(parts.leftWhite.image, parts.rightIris,Math.sin(angle*-9)*eyeSize/3,3+Math.cos(angle*-9)*eyeSize/3);
       drawSprite(rightEye,parts.rightWhite.x,parts.rightWhite.y)
 
-      drawSprite(parts.mouth.image,parts.mouth.x,parts.mouth.y);
+      drawSprite(parts.mouth.image,parts.mouth.x,parts.mouth.y,mouthFrame);
     }
 
 /*
@@ -404,9 +426,12 @@ function makeCog(peg,teeth) {
     return peg;
   }
   function move() {
-    angle+=rotation*self.direction;
-    mouthFrame+=1;
-    if (mouthFrame >9){mouthFrame=0}
+    if (self == level.bottom) {
+      angle+=rotation*self.direction;
+    }
+    if (probability(0.01)) {
+      mouthFrame=1-mouthFrame;
+    }
   }
   function draw() {
       let {x,y} = getPosition();
@@ -414,4 +439,55 @@ function makeCog(peg,teeth) {
   }
   return self;
   
+}
+
+
+var happy2Angle = 0.46;
+
+
+var happy2Pos = [621,304];
+var happy1Pos = [-180,180];
+
+
+var angry1Pos = [0,-170];
+var angry2Pos = [-60,-100];
+var angry3Pos = [470,820];
+
+var tweak = 0;
+
+var age = 0;
+function drawBackdrop( ) {
+  age+=1;
+
+  let shunt=Math.sin(age/30)*50;
+
+  let angryShunt=Math.sin(age/50);
+
+  ctx.save();
+  { let  [x,y] = happy2Pos;
+    x+=shunt;
+    ctx.translate(x,y);
+  }
+  ctx.rotate(happy2Angle+shunt/350);
+  ctx.drawImage(Assets.happy_piston_2,-50,-53);
+  ctx.restore();
+  { let  [x,y] = happy1Pos;
+    x+=shunt;    
+    ctx.drawImage(Assets.happy_piston_1,x,y);
+  }
+
+  ctx.save();
+  ctx.translate(...angry3Pos);
+  ctx.rotate(-0.3+angryShunt*0.2);
+  ctx.drawImage(Assets.angry_piston_3,-Assets.angry_piston_3.width/2,-Assets.angry_piston_3.height/2);
+  ctx.translate(...angry2Pos);
+  ctx.rotate(-0.2+(angryShunt*-0.02));
+  ctx.drawImage(Assets.angry_piston_2,-28,-45);
+  { let [x,y] = angry1Pos;
+    x+=(angryShunt+1)*100;
+    ctx.translate(x,y);
+  }
+  ctx.drawImage(Assets.angry_piston_1,100,100);
+  ctx.restore();
+
 }

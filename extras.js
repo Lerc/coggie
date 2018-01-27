@@ -84,3 +84,7 @@
 function randInt(below=1) {
     return Math.floor(Math.random()*below);
 }
+
+function probability(amt=0.5)  {
+    return Math.random() < amt;
+}

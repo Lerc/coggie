@@ -30,11 +30,15 @@ imageList = [
     "20_right_white.png",
 
 
-    "8-12_mouth_close.png",
-    "8-12_mouth_open.png",
-    "16-20_mouth_close.png",
-    "16-20_mouth_open.png",
+    "8-12_mouth.png|2|1",
+    "16-20_mouth.png|2|1",
 
+    "angry_piston_1.png",
+    "angry_piston_2.png",
+    "angry_piston_3.png",
+    "happy_piston_1.png",
+    "happy_piston_2.png",
+    
     "peg.png",
     "blarg.png|10|1"
 ].map(imageDetailsFromString);
@@ -81,14 +85,14 @@ function loadAssets() {
         rightIris : pos("8_right_iris",0,-2),
         leftWhite : pos("8_left_white",-13,-7),
         rightWhite : pos("8_right_white",18,-4),
-        mouth: pos("8-12_mouth_close",-3,17),
+        mouth: pos("8-12_mouth",-3,17),
     }
     let cog12Parts = {
         leftIris : pos("12_left_iris",0,-2),
         rightIris : pos("12_right_iris",0,-2),
         leftWhite : pos("12_left_white",-25,-19),
         rightWhite : pos("12_right_white",23,-14),
-        mouth: pos("8-12_mouth_close",-1,19),
+        mouth: pos("8-12_mouth",-1,19),
     }
 
     let cog16Parts = {
@@ -96,7 +100,7 @@ function loadAssets() {
         rightIris : pos("16_right_iris",0,-3),
         leftWhite : pos("16_left_white",-33,-30),
         rightWhite : pos("16_right_white",16,-21),
-        mouth: pos("16-20_mouth_close",-1,37),
+        mouth: pos("16-20_mouth",-1,37),
 
     }
     
@@ -105,7 +109,7 @@ function loadAssets() {
         rightIris : pos("20_right_iris",0,-3),
         leftWhite : pos("20_left_white",-35,-36),
         rightWhite : pos("20_right_white",14,-27),
-        mouth: pos("16-20_mouth_close",+5,36),
+        mouth: pos("16-20_mouth",+5,36),
         
     }
     
