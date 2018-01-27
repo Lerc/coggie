@@ -39,6 +39,11 @@ var puzzle1 = {
   cogs :[[0,8],[1,12],[2,16],[3,20],[4,20]]
 }
 
+var puzzle2 = {
+  pegs : [[-550,-270], [-550,0], [-550, 270],[550,-270],[550,0],[550,270],  [-265,353] ,[-107,285] , [-363,210], [-291,0], [-107,64], [-186,-191], [135,-293], [3,-304], [-322,-139],[80,122],[273,27],[137,-112] ],
+  cogs :[[0,8],[1,12],[2,16],[3,20],[4,16],[5,20],[10,20]]
+}
+
 
 function gameInit() {
   $(canvas).on("mousemove", handleMouseMove)
@@ -51,7 +56,7 @@ function gameInit() {
   cogImage[20]=Assets.cog20;
   cogImage[100]=Assets.cog100;
   
-  setPuzzle(puzzle1);
+  setPuzzle(puzzle2);
   update();
 }
 
@@ -157,6 +162,9 @@ function handleMouseMove(e) {
   cogUnderMouse=cogUnderPos(mouseToWorld(mouse));
   pegUnderMouse=pegUnderPos(mouseToWorld(mouse));
   note=JSON.stringify(mouseToWorld(mouse));
+  if (dragging)  {
+    note=JSON.stringify(dragging.getPosition());
+  }
 }
 
 function update() {
@@ -337,7 +345,7 @@ function makeCog(peg,teeth) {
     let a=getPosition();
     let b=other.getPosition();
     var dir=Math.atan2(a.y-b.y,-(a.x-b.x));
-    note=dir;
+    //note=dir;
     setPhase(0.5-other.getPhase(dir),dir+Math.PI);
     
   }
