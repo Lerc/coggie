@@ -91,6 +91,45 @@ var pegUnderMouse;
 
 var dragging=null;
 var dragOffset;
+var age = 0;
+
+
+var lastTime  = performance.now();
+var frameDurationInMilliseconds = 1000/60;
+function update() {
+  let currentTime=performance.now();
+  let deltaTime = currentTime-lastTime;
+  let ticks = Math.round(deltaTime / frameDurationInMilliseconds);
+  lastTime=currentTime;
+  note = JSON.stringify({ticks,deltaTime});
+  
+  ticks.times(move);
+  draw();
+  requestAnimationFrame(update);
+}
+function move() {
+  age+=1;
+ scanCogs();
+
+ for (let e of [...level.pegs,...level.cogs]) {
+    e.move();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (imagesPending.length > 0) {
+    ctx.fillText(JSON.stringify(imagesPending),10,10);
+    return;
+  }
+
+  drawBackdrop(); 
+  gameDraw();
+
+  ctx.fillText(note,10,10);
+
+}
+
 
 function handleMouseDown(e) {
   let x=e.offsetX;
@@ -165,42 +204,6 @@ function handleMouseMove(e) {
   if (dragging)  {
     note=JSON.stringify(dragging.getPosition());
   }
-}
-
-var lastTime  = performance.now();
-var frameDurationInMilliseconds = 1000/60;
-function update() {
-  let currentTime=performance.now();
-  let deltaTime = currentTime-lastTime;
-  let ticks = Math.round(deltaTime / frameDurationInMilliseconds);
-  lastTime=currentTime;
-  note = JSON.stringify({ticks,deltaTime});
-
-  ticks.times(move);
-  draw();
-  requestAnimationFrame(update);
-}
-
-function move() {
- scanCogs();
-
- for (let e of [...level.pegs,...level.cogs]) {
-    e.move();
-  }
-}
-
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if (imagesPending.length > 0) {
-    ctx.fillText(JSON.stringify(imagesPending),10,10);
-    return;
-  }
-
-  drawBackdrop(); 
-  gameDraw();
-
-  ctx.fillText(note,10,10);
-
 }
 
 function gameDraw() {
@@ -442,7 +445,6 @@ var angry3Pos = [470,820];
 
 var tweak = 0;
 
-var age = 0;
 function drawBackdrop( ) {
   age+=1;
 
