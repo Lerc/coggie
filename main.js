@@ -36,17 +36,22 @@ function waitForImages() {
 
 var titleScreen = {
   pegs : [[1000,35,0]],
-  cogs :[[0,60]]
+  cogs :[[0,60,0.6]],
+  success : []
+
 }
 
 var puzzle1 = {
   pegs : [[-550,-270], [-550,0], [-550, 270],[550,-270],[550,270],[-41,278] ,[-70,90] , [-90,-77], [10,-180], [135,-293] ],
-  cogs :[[0,8],[1,12],[2,16],[3,20],[4,20]]
+  cogs :[[0,8],[1,12],[2,16],[3,20],[4,20]],
+  success : [-0.7,0.7]
 }
 
 var puzzle2 = {
   pegs : [[-550,-270], [-550,0], [-550, 270],[550,-270],[550,0],[550,270],  [-265,353] ,[-107,285] , [-363,210], [-291,0], [-107,64], [-186,-191], [135,-293], [3,-304], [-322,-139],[80,122],[273,27],[137,-112] ],
-  cogs :[[0,8],[1,12],[2,16],[3,20],[4,16],[5,20],[10,20]]
+  cogs :[[0,8],[1,12],[2,16],[3,20],[4,16],[5,20],[10,20]],
+  success : [-0.7,0.7]
+
 }
 
 
@@ -59,7 +64,7 @@ var pegUnderMouse;
 var dragging=null;
 var dragOffset;
 var age = 0;
-
+var success = false;
 
 function gameInit() {
   $(canvas).on("mousemove", handleMouseMove)
@@ -96,15 +101,28 @@ function gameInit() {
 function setPuzzle(puzzle) {
   dragging=null;
   cogUnderMouse=null;
+  success=false;
   let  fixedpegs=  [ 
     [0,-1000,0],[0,1000,0]
-  ]  
+  ]
+  level.puzzle = puzzle;
   level.pegs = [...fixedpegs,...puzzle.pegs].map(a=>makePeg(...a));
   
   let pegs=level.pegs;
 
   let bottom = makeCog(pegs[1],100);
   let top = makeCog(pegs[0],100);
+  top.depth=0;
+  {
+    //let angle = 0.7;
+//    let x=Math.cos(angle)*600;
+
+  //  let y=Math.sin(angle)*600;
+    for (let angle of puzzle.success) {
+      top.children.push(makeSign(0,600,angle));
+    }
+  }
+
   top.fixed=true;
   bottom.direction=1;
   bottom.fixed=true;
@@ -112,8 +130,8 @@ function setPuzzle(puzzle) {
   level.top=top;
   level.cogs = [bottom,top]; 
 
-  for (let [peg,teeth] of puzzle.cogs) {
-    level.cogs.push(makeCog(pegs[peg+2],teeth));
+  for (let [peg,teeth,angle=Math.random()*Math.PI*2] of puzzle.cogs) {
+    level.cogs.push(makeCog(pegs[peg+2],teeth,angle));
   }
 }
 
@@ -126,18 +144,30 @@ function update() {
   let ticks = Math.round(deltaTime / frameDurationInMilliseconds);
   if (ticks > 10) ticks=1;
   lastTime=currentTime;
-  note = JSON.stringify({ticks,deltaTime});
+  //note = JSON.stringify({ticks,deltaTime});
   
   ticks.times(move);
   draw();
   requestAnimationFrame(update);
 }
 
+function isTiny(x,lessthan= 0.01) {
+  return Math.abs(x) < lessthan;
+}
+
 function move() {
   age+=1;
+  if (success) return;
  scanCogs();
+ var arrived =  level.puzzle.success.some(a=>isTiny(level.top.getAngle()+a));
 
- for (let e of [...level.pegs,...level.cogs]) {
+ 
+ if (arrived) {
+   if (level.top.direction !=0) {
+     success=true;
+   }
+
+ }else for (let e of [...level.pegs,...level.cogs]) {
     e.move();
   }
 }
@@ -160,9 +190,18 @@ function draw() {
 function handleMouseDown(e) {
   let x=e.offsetX;
   let y=e.offsetY;
-  playSound(Assets.bleep);
-
+ // playSound(Assets.bleep);
   mouseDownPosition= mouseToWorld({x,y});
+
+  if (success) {
+    let buttonPos={x:0,y:-372}
+      
+      if (distance(mouseDownPosition,buttonPos)<80) {
+        setPuzzle(puzzle2);
+      }
+    
+    return;
+  }
   if (cogUnderMouse) {
     let cogPos = cogUnderMouse.getPosition();
     let {x,y}=mouseDownPosition;
@@ -226,6 +265,7 @@ function handleMouseMove(e) {
   let y=e.offsetY;
 
   mouse={x,y};
+  
   cogUnderMouse=cogUnderPos(mouseToWorld(mouse));
   pegUnderMouse=pegUnderPos(mouseToWorld(mouse));
   note=JSON.stringify(mouseToWorld(mouse));
@@ -235,6 +275,7 @@ function handleMouseMove(e) {
 }
 
 function gameDraw() {
+
   ctx.save(); 
   ctx.translate(canvas.width/2,canvas.height/2);
 
@@ -253,14 +294,17 @@ function gameDraw() {
 
   ctx.restore();
   
-  for (let e of [...level.pegs,...level.cogs]) {
+  var drawOrder = [...level.pegs,...level.cogs].sort((a,b)=>b.depth-a.depth);
+  for (let e of drawOrder) {
     e.draw();
   }
-  if (dragging) {
-      //dragging.highlight();    
-  } else {
-    if (cogUnderMouse) {
-      cogUnderMouse.highlight();
+  if (!success) {
+    if (dragging) {
+        //dragging.highlight();    
+    } else {
+      if (cogUnderMouse) {
+        cogUnderMouse.highlight();
+      }
     }
   }
   ctx.restore();  
@@ -322,7 +366,17 @@ function drawSprite(image,x,y,frame=0) {
     
 
 }
+function makeSign(x,y,angle) {
+  function draw() {
+    ctx.save();
+    ctx.rotate(angle);
 
+    drawSprite((angle>0)?Assets.sign:Assets.sign_reverse,x,y,success?1:0);
+    ctx.restore();
+  }
+  return {draw};
+}
+ 
 function makePeg(placedX,placedY,zoomFrom=1) {
   
   function move(){
@@ -344,22 +398,22 @@ function makePeg(placedX,placedY,zoomFrom=1) {
     placedX=pos.x;
     placedY=pos.y;
   }
-  return {move,draw,getPosition,setPosition}
+  return {move,draw,getPosition,setPosition,depth:1000}
 }
 
 
 
-function makeCog(peg,teeth) {
+function makeCog(peg,teeth,angle=0) {
   let mouthFrame=0; 
-  let angle=Math.random();
-  if (teeth==60) angle=0.6;
   let radius = (teeth*37.7)/(Math.PI*2);
   let eyeSize = radius/10;
   let rotation =(1/radius);
   let toothAngle = Math.PI*2/teeth;
   //if (Math.random()<0.5) rotation=-rotation; 
-  let self = {move,draw,getPosition,radius,toothAngle,teeth,setPeg,getPeg,getAngle,getPhase,linkTo,highlight};
-  self.direction=0;
+  let children = [];
+  let self = {move,draw,getPosition,radius,toothAngle,teeth,setPeg,getPeg,getAngle,getPhase,linkTo,highlight,children};
+  self.direction=1;
+  self.depth=teeth;
   let ratio = (radius+20)/radius;
   //let teeth = Math.floor((radius*Math.PI*2)/38);
   var image; 
@@ -433,6 +487,9 @@ function makeCog(peg,teeth) {
 
       drawSprite(parts.mouth.image,parts.mouth.x,parts.mouth.y,mouthFrame);
     }
+    for (let c of children) {
+      c.draw();
+    }
 
     ctx.restore();
 
@@ -494,9 +551,9 @@ var tweak = 0;
 function drawBackdrop( ) {
   age+=1;
 
-  let shunt=Math.sin(age/30)*50;
+  let shunt=Math.sin(age/60)*50;
 
-  let angryShunt=Math.sin(age/50);
+  let angryShunt=Math.sin(age/80);
 
   ctx.save();
   { let  [x,y] = happy2Pos;

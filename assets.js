@@ -39,6 +39,8 @@ imageList = [
     "happy_piston_1.png",
     "happy_piston_2.png",
 
+    "sign.png|2|1",
+    "sign_reverse.png|2|1",
     "intro_screen.png",
     "peg.png",
     "blarg.png|10|1"
