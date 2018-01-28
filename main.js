@@ -221,6 +221,7 @@ function handleMouseUp(e) {
     let peg = pegUnderPos(dragging.getPosition())
     if (peg) {
       dragging.setPeg(peg);
+      playSound(Assets.place,0.2)
     }
   }
   dragging=false;
@@ -274,7 +275,7 @@ function handleMouseMove(e) {
   note=JSON.stringify(mouseToWorld(mouse));
   if (dragging)  {
     if (dragFlag) {
-      playSound(Assets.pick_up);
+      playSound(Assets.pick_up,0.5);
       dragFlag=false;
     }
     note=JSON.stringify(dragging.getPosition());

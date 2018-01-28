@@ -50,7 +50,7 @@ var soundList = [
     "bleep.wav",
     "gear_grinding.mp3",
     "pick_up.mp3",
-    "pick_place.mp3",
+    "place.mp3",
     "victory_cry.mp3",
     
     "dading.wav"
@@ -79,11 +79,11 @@ function imageDetailsFromString(s) {
     return {name,framesWide,framesHigh}
 }
 
-function playSound(buffer) {
+function playSound(buffer,offset=0) {
   var source = audioContext.createBufferSource();
   source.buffer = buffer;                   
   source.connect(audioContext.destination);      
-  source.start(0);                               
+  source.start(0,offset);                               
 }
 
 function loadSound(url) {
