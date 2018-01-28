@@ -165,6 +165,8 @@ function move() {
  if (arrived) {
    if (level.top.direction !=0) {
      success=true;
+     playSound(Assets.dading);
+     playSound(Assets.victory_cry);
    }
 
  }else for (let e of [...level.pegs,...level.cogs]) {
@@ -185,7 +187,7 @@ function draw() {
   ctx.fillText(note,10,10);
 
 }
-
+var dragFlag =false;
 
 function handleMouseDown(e) {
   let x=e.offsetX;
@@ -210,6 +212,7 @@ function handleMouseDown(e) {
 
     dragOffset={dx,dy};
     dragging=cogUnderMouse;
+    dragFlag=true;
   }
 }
 
@@ -270,6 +273,10 @@ function handleMouseMove(e) {
   pegUnderMouse=pegUnderPos(mouseToWorld(mouse));
   note=JSON.stringify(mouseToWorld(mouse));
   if (dragging)  {
+    if (dragFlag) {
+      playSound(Assets.pick_up);
+      dragFlag=false;
+    }
     note=JSON.stringify(dragging.getPosition());
   }
 }

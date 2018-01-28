@@ -46,7 +46,15 @@ imageList = [
     "blarg.png|10|1"
 ].map(imageDetailsFromString);
 
-var soundList = ["bleep.wav"];
+var soundList = [
+    "bleep.wav",
+    "gear_grinding.mp3",
+    "pick_up.mp3",
+    "pick_place.mp3",
+    "victory_cry.mp3",
+    
+    "dading.wav"
+];
 
 var imagesPending = [];
 var Assets = {};
